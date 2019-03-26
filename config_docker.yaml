@@ -1,0 +1,16 @@
+#----------------Dir_settings:----------------------------------------------
+base_dir: /mnt/share/ #where it start in docker env
+main_dir: /mnt/share/repo/example_dataset/ #docs / repository in docker env
+genome_dir: genome_b37/ # genome data
+sample_dir: sample_input/ #sample directory
+output_dir: output/ #output folder
+logs_dir: logs/ # for logs...
+jar_dir: /opt/conda/opt/ #needed for the gatk3_register
+#---------------Settings:----------------------------------------------
+GENOME: b37_human_g1k_v37_decoy.chr20
+KS1: b37_dbsnp_138.b37.chr_20p12.1.vcf.gz
+KS2: b37_Mills_and_1000G_gold_standard.indels.b37.chr_20p12.1.vcf.gz
+KS3: b37_1000G_phase1.indels.b37.chr_20p12.1.vcf.gz
+#KS -> KnowSites
+Ll: b37.vcrome2.1.ann.chr_20.bed
+
