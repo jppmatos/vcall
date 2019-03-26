@@ -1,25 +1,32 @@
-#----------------Dir_settings:----------------------------------------------
-base_dir = '/mnt/share/'#where it start in docker env
-main_dir = base_dir + 'repo/example_dataset/'#docs / repository in docker env
-genome_dir = 'genome_b37/'# genome data
-sample_dir = 'single_sample/'#sample directory
-output_dir = 'output/'#output folder
-logs_dir = 'logs/'# for logs...
-jar_dir = '/opt/conda/opt/'#needed for the gatk3_register
-#------------------------------------------------------------------------
-#configfile: "config.yaml"
-GENOME = "b37_human_g1k_v37_decoy.chr20"
-KS1 = "b37_dbsnp_138.b37.chr_20p12.1.vcf.gz"
-KS2 = "b37_Mills_and_1000G_gold_standard.indels.b37.chr_20p12.1.vcf.gz"
-KS3 = "b37_1000G_phase1.indels.b37.chr_20p12.1.vcf.gz"
-#KS -> KnowSites
-# ? make an input in cmd env ? 
+#----------------Settings:----------------------------------------------
+#print('Insert configfile directory:')
+#config_f = input()
+#print('Configfile: ',config_f)
+#configfile: config_f
+configfile: "/mnt/share/config_docker.yaml"
+#|__________Dir_settings:____________|
+base_dir = config["base_dir"]
+main_dir = config["main_dir"] 
+genome_dir = config["genome_dir"]
+sample_dir = config["sample_dir"] 
+output_dir = config["output_dir"] 
+logs_dir = config["logs_dir"]
+jar_dir = config["jar_dir"]
+
+GENOME = config["GENOME"]
+KS1 = config["KS1"]
+KS2 = config["KS2"]
+KS3 = config["KS3"]
+Ll = config["Ll"]
+#|___________________________________|
 #------------------------------------------------------------------------
 rule bwa_index:
 	input:
 		fa = main_dir + genome_dir + GENOME + ".fasta"# GENOME = b37_human_g1k_v37_decoy.chr20
 	output:
 		main_dir + genome_dir + GENOME + '.fasta.sa'
+	message:
+		'Building index -> {output}'
 	shell:
 		'bwa index {input.fa}' #funciona
 
@@ -33,8 +40,9 @@ rule BWA_samblaster_sambamba:
 		align = main_dir + '{sample}.alignment.bam'
 		#log = 'mnt/share/repo/example_dataset/BSS.NA12878.20p12.1.30x.log'
 	threads: 4
-	shell:
-		'bwa mem -t {threads} -R "@RG\\tID:NA12878\\tPL:Illumina\\tLB:NA12878\\tSM:NA12878\\tCN:Lab" -M {input.ref} {input.r_fow} {input.r_rev} | '
+	#alterar "etiquetas" altearada -> NA12878
+	shell: 
+		'bwa mem -t {threads} -R "@RG\\tID:{sample}\\tPL:{sample}\\tLB:{sample}\\tSM:{sample}\\tCN:Lab" -M {input.ref} {input.r_fow} {input.r_rev} | '
 		'samblaster -M |'
 		'sambamba view -S -f bam -l 0 /dev/stdin |'#/dev/stdin 
 		'sambamba sort -m 4G -t {threads} -o {output.align} /dev/stdin 2>&1 ' #> {output.log}' #/dev/stdin 
@@ -76,9 +84,9 @@ rule gatk_BaseRecalibrator:
 		ksites2 = main_dir + genome_dir + KS2,#
 		ksites3 = main_dir + genome_dir + KS3,
 		#reads = main_dir + 'single_sample/NA12878.20p12.1.30x.bam'#single_sample
-		reads = main_dir + '{sample}.alignment.bam' #single_sample
+		reads = main_dir + '{sample}.alignment.bam', #single_sample
 		#L = intervalfile
-		#cap = '~/hg19/"$capture'#
+		cap = main_dir + sample_dir + Ll
 	output:
 		recal_data = main_dir + output_dir + '{sample}.sorted.bam_pre_recal_data.grp',#"$sample"
 		base_recal = main_dir + output_dir + logs_dir +'{sample}.base_recal.qsub'#/logs
@@ -91,8 +99,8 @@ rule gatk_BaseRecalibrator:
 		-knownSites {input.ksites3} \
 		-I {input.reads} \
 		-o {output.recal_data} --interval_padding 100 \
-		> {output.base_recal}'
-		# -L {input.cap}  \
+		> {output.base_recal} \
+		-L {input.cap}'  
 
 rule gatk_BaseRecalibrator2:#A
 	input:
@@ -105,8 +113,8 @@ rule gatk_BaseRecalibrator2:#A
 		ksites3 = main_dir + genome_dir + KS3,
 		bqsr = main_dir + output_dir +'{sample}.sorted.bam_pre_recal_data.grp',#"$sample"		
 		#reads = main_dir + 'single_sample/NA12878.20p12.1.30x.bam'#single_sample
-		reads = main_dir + '{sample}.alignment.bam'#single_sample
-		#cap = '~/hg19/"$capture'#
+		reads = main_dir + '{sample}.alignment.bam',#single_sample
+		cap = main_dir + sample_dir + Ll
 	output:
 		pos_recal_data = main_dir + output_dir +'{sample}.sorted.bam_pos_recal_data.grp',#"$sample"
 		base_recal = main_dir + output_dir + logs_dir +'{sample}.base_recal_2.qsub'#/logs
@@ -119,24 +127,24 @@ rule gatk_BaseRecalibrator2:#A
 		-BQSR {input.bqsr} \
 		-I {input.reads} \
 		-o {output.pos_recal_data} --interval_padding 100 \
-		> {output.base_recal}'
-		# -L {input.cap}  \
+		> {output.base_recal} \
+		-L {input.cap}'  
 
-rule Analyze_Covariates:#A
+rule Analyze_Covariates:
 	input:
 		jar = jar_dir +'gatk-3.8/GenomeAnalysisTK.jar',
 		fa = main_dir + genome_dir + GENOME + ".fasta",
 		bqsr = main_dir + output_dir +'{sample}.sorted.bam_pre_recal_data.grp',
 		pos_recal_data = main_dir + output_dir +'{sample}.sorted.bam_pos_recal_data.grp'	
 	output:
-		pdf = main_dir + output_dir + logs_dir + '{sample}.gen.sorted.bam_plots.pdf'
+		pdf_log = main_dir + output_dir + logs_dir + '{sample}.sorted.bam_plots.pdf'
 	shell:
 		'java -Xmx2g -jar {input.jar} \
 		-T AnalyzeCovariates \
 		-R {input.fa} \
 		-before {input.bqsr} \
-		-after {input.pos_recal_data} \
-		-plots {output.pdf}'
+		-after {input.pos_recal_data}'# \
+		#-plots {output.pdf_log}'
 
 rule Apply_recalibration:
 	input:
@@ -144,7 +152,7 @@ rule Apply_recalibration:
 		fa = main_dir + genome_dir + GENOME + ".fasta",
 		bqsr = main_dir + output_dir +'{sample}.sorted.bam_pre_recal_data.grp',
 		reads = main_dir + '{sample}.alignment.bam'#,
-		#pdf = main_dir + output_dir + logs_dir + 'gen.sorted.bam_plots.pdf'
+		#pdf_log = main_dir + output_dir + logs_dir + '{sample}.sorted.bam_plots.pdf'
 	output:
 		recal = main_dir + output_dir + '{sample}.sorted.nodups.realigned.recal.bam',
 		apply_recal = main_dir + output_dir + logs_dir + '{sample}.apply_recal.qsub'
@@ -167,6 +175,8 @@ rule Call_Variants:
 	output:
 		site = main_dir + output_dir + '{sample}.gvcf.gz',
 		logs = main_dir + output_dir + logs_dir + '{sample}.call_vars.qsub'
+	benchmark:
+		main_dir + 'benchmaks/{sample}.txt'
 	shell:
 		'java -Xmx4g -jar {input.jar} \
 		-T HaplotypeCaller -rf BadCigar -R {input.fa} \
