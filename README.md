@@ -1,2 +1,4 @@
-# vcall
-variantcalling
+# Vcall
+variantcalling pipeline.
+
+still in development...
