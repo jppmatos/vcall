@@ -17,7 +17,8 @@ GENOME = config["GENOME"]
 KS1 = config["KS1"]
 KS2 = config["KS2"]
 KS3 = config["KS3"]
-Ll = config["Ll"]
+
+L_TARGET = config["TARGET"]
 #|___________________________________|
 #------------------------------------------------------------------------
 rule bwa_index:
@@ -86,7 +87,7 @@ rule gatk_BaseRecalibrator:
 		#reads = main_dir + 'single_sample/NA12878.20p12.1.30x.bam'#single_sample
 		reads = main_dir + '{sample}.alignment.bam', #single_sample
 		#L = intervalfile
-		cap = main_dir + sample_dir + Ll
+		#l_target = main_dir + sample_dir + TARGET
 	output:
 		recal_data = main_dir + output_dir + '{sample}.sorted.bam_pre_recal_data.grp',#"$sample"
 		base_recal = main_dir + output_dir + logs_dir +'{sample}.base_recal.qsub'#/logs
@@ -98,11 +99,9 @@ rule gatk_BaseRecalibrator:
 		-knownSites {input.ksites2} \
 		-knownSites {input.ksites3} \
 		-I {input.reads} \
-		-o {output.recal_data} --interval_padding 100 \
-		> {output.base_recal} \
-		-L {input.cap}'  
+		-o {output.recal_data} --interval_padding 100 ' + L_TARGET + ' > {output.base_recal}'
 
-rule gatk_BaseRecalibrator2:#A
+rule gatk_BaseRecalibrator2:
 	input:
 		jar = jar_dir +'gatk-3.8/GenomeAnalysisTK.jar',
 		ref = main_dir + genome_dir + GENOME + '.fasta',
@@ -114,7 +113,7 @@ rule gatk_BaseRecalibrator2:#A
 		bqsr = main_dir + output_dir +'{sample}.sorted.bam_pre_recal_data.grp',#"$sample"		
 		#reads = main_dir + 'single_sample/NA12878.20p12.1.30x.bam'#single_sample
 		reads = main_dir + '{sample}.alignment.bam',#single_sample
-		cap = main_dir + sample_dir + Ll
+		#l_target = main_dir + sample_dir + TARGET
 	output:
 		pos_recal_data = main_dir + output_dir +'{sample}.sorted.bam_pos_recal_data.grp',#"$sample"
 		base_recal = main_dir + output_dir + logs_dir +'{sample}.base_recal_2.qsub'#/logs
@@ -126,9 +125,8 @@ rule gatk_BaseRecalibrator2:#A
 		-knownSites {input.ksites3} \
 		-BQSR {input.bqsr} \
 		-I {input.reads} \
-		-o {output.pos_recal_data} --interval_padding 100 \
-		> {output.base_recal} \
-		-L {input.cap}'  
+		-o {output.pos_recal_data} --interval_padding 100 ' + L_TARGET + ' > {output.base_recal}'
+ 
 
 rule Analyze_Covariates:
 	input:
@@ -156,6 +154,7 @@ rule Apply_recalibration:
 	output:
 		recal = main_dir + output_dir + '{sample}.sorted.nodups.realigned.recal.bam',
 		apply_recal = main_dir + output_dir + logs_dir + '{sample}.apply_recal.qsub'
+	threads: 4
 	shell:
 		'java -Xmx4g -jar {input.jar} \
 		-T PrintReads \
@@ -169,14 +168,12 @@ rule Call_Variants:
 	input:
 		jar = jar_dir +'gatk-3.8/GenomeAnalysisTK.jar',
 		fa = main_dir + genome_dir + GENOME + ".fasta",
-		#target = main_dir + genome_dir +'capture',# in case of exões (WES vs WGS) #PROBLEM???
 		recal = main_dir + output_dir + '{sample}.sorted.nodups.realigned.recal.bam',
 		ksites1 = main_dir + genome_dir + KS1
 	output:
 		site = main_dir + output_dir + '{sample}.gvcf.gz',
 		logs = main_dir + output_dir + logs_dir + '{sample}.call_vars.qsub'
-	benchmark:
-		main_dir + 'benchmaks/{sample}.txt'
+	threads: 4
 	shell:
 		'java -Xmx4g -jar {input.jar} \
 		-T HaplotypeCaller -rf BadCigar -R {input.fa} \
@@ -184,4 +181,5 @@ rule Call_Variants:
 		-I {input.recal} \
 		-stand_call_conf 10  --filter_bases_not_stored --emitRefConfidence GVCF \
 		-D {input.ksites1} -variant_index_type LINEAR -variant_index_parameter 128000 \
-		-o {output.site} > {output.logs}'
+		-o {output.site} ' + L_TARGET + ' > {output.logs}' 
+		# in case of exões (WES vs WGS) 
