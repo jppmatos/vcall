@@ -15,3 +15,5 @@ KS3: b37_1000G_phase1.indels.b37.chr_20p12.1.vcf.gz
 
 TARGET: -L /mnt/share/repo/example_dataset/sample_input/b37.vcrome2.1.ann.chr_20.bed
 #TARGET: ""
+COSMIC: --cosmic /mnt/share/repo/example_dataset/genome_b37/CosmicCodingMuts_v87_12_03_2019.chr_20p12.1.vcf.gz
+#COSMIC: ""

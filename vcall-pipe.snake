@@ -19,6 +19,7 @@ KS2 = config["KS2"]
 KS3 = config["KS3"]
 
 L_TARGET = config["TARGET"]
+COSMIC = config["COSMIC"]
 #|___________________________________|
 #------------------------------------------------------------------------
 rule bwa_index:
@@ -38,12 +39,11 @@ rule BWA_samblaster_sambamba:
 		r_fow = main_dir + sample_dir + '{sample}.R1.fastq.gz',
 		r_rev = main_dir + sample_dir + '{sample}.R2.fastq.gz'
 	output:
-		align = main_dir + '{sample}.alignment.bam'
+		align = main_dir + output_dir + '{sample}.alignment.bam'
 		#log = 'mnt/share/repo/example_dataset/BSS.NA12878.20p12.1.30x.log'
-	threads: 4
 	#alterar "etiquetas" altearada -> NA12878
 	shell: 
-		'bwa mem -t {threads} -R "@RG\\tID:{sample}\\tPL:{sample}\\tLB:{sample}\\tSM:{sample}\\tCN:Lab" -M {input.ref} {input.r_fow} {input.r_rev} | '
+		'bwa mem -t {threads} -R "@RG\\tID:{wildcards.sample}\\tPL:ILLUMINA\\tSM:{wildcards.sample}" -M {input.ref} {input.r_fow} {input.r_rev} | '
 		'samblaster -M |'
 		'sambamba view -S -f bam -l 0 /dev/stdin |'#/dev/stdin 
 		'sambamba sort -m 4G -t {threads} -o {output.align} /dev/stdin 2>&1 ' #> {output.log}' #/dev/stdin 
@@ -75,7 +75,7 @@ rule samtools_index:
 	shell:
 		'samtools faidx {input}'
 
-rule gatk_BaseRecalibrator:
+rule gatk_BaseRecalibrator: #multitheading error
 	input:
 		jar = jar_dir + 'gatk-3.8/GenomeAnalysisTK.jar',
 		ref = main_dir + genome_dir + GENOME + '.fasta',
@@ -85,13 +85,13 @@ rule gatk_BaseRecalibrator:
 		ksites2 = main_dir + genome_dir + KS2,#
 		ksites3 = main_dir + genome_dir + KS3,
 		#reads = main_dir + 'single_sample/NA12878.20p12.1.30x.bam'#single_sample
-		reads = main_dir + '{sample}.alignment.bam', #single_sample
+		reads = main_dir + output_dir + '{sample}.alignment.bam', #single_sample
+		#reads = main_dir + '{sample}.alignment.bam', #single_sample
 		#L = intervalfile
 		#l_target = main_dir + sample_dir + TARGET
 	output:
 		recal_data = main_dir + output_dir + '{sample}.sorted.bam_pre_recal_data.grp',#"$sample"
 		base_recal = main_dir + output_dir + logs_dir +'{sample}.base_recal.qsub'#/logs
-
 	shell:
 		'java -Xmx4g -jar {input.jar} \
 		-T BaseRecalibrator -R {input.ref} -nct 2 \
@@ -101,7 +101,7 @@ rule gatk_BaseRecalibrator:
 		-I {input.reads} \
 		-o {output.recal_data} --interval_padding 100 ' + L_TARGET + ' > {output.base_recal}'
 
-rule gatk_BaseRecalibrator2:
+rule gatk_BaseRecalibrator2: #multitheading error
 	input:
 		jar = jar_dir +'gatk-3.8/GenomeAnalysisTK.jar',
 		ref = main_dir + genome_dir + GENOME + '.fasta',
@@ -144,17 +144,16 @@ rule Analyze_Covariates:
 		-after {input.pos_recal_data}'# \
 		#-plots {output.pdf_log}'
 
-rule Apply_recalibration:
+rule Apply_recalibration: #multitheading error
 	input:
 		jar = jar_dir +'gatk-3.8/GenomeAnalysisTK.jar',
 		fa = main_dir + genome_dir + GENOME + ".fasta",
 		bqsr = main_dir + output_dir +'{sample}.sorted.bam_pre_recal_data.grp',
-		reads = main_dir + '{sample}.alignment.bam'#,
+		reads = main_dir + output_dir + '{sample}.alignment.bam'#,
 		#pdf_log = main_dir + output_dir + logs_dir + '{sample}.sorted.bam_plots.pdf'
 	output:
 		recal = main_dir + output_dir + '{sample}.sorted.nodups.realigned.recal.bam',
 		apply_recal = main_dir + output_dir + logs_dir + '{sample}.apply_recal.qsub'
-	threads: 4
 	shell:
 		'java -Xmx4g -jar {input.jar} \
 		-T PrintReads \
@@ -173,7 +172,7 @@ rule Call_Variants:
 	output:
 		site = main_dir + output_dir + '{sample}.gvcf.gz',
 		logs = main_dir + output_dir + logs_dir + '{sample}.call_vars.qsub'
-	threads: 4
+	threads: 2
 	shell:
 		'java -Xmx4g -jar {input.jar} \
 		-T HaplotypeCaller -rf BadCigar -R {input.fa} \
@@ -181,5 +180,26 @@ rule Call_Variants:
 		-I {input.recal} \
 		-stand_call_conf 10  --filter_bases_not_stored --emitRefConfidence GVCF \
 		-D {input.ksites1} -variant_index_type LINEAR -variant_index_parameter 128000 \
+		-nct {threads} \
 		-o {output.site} ' + L_TARGET + ' > {output.logs}' 
 		# in case of exões (WES vs WGS) 
+#VS
+rule Normal_VS_Tumor:
+	input:
+		jar = jar_dir +'gatk-3.8/GenomeAnalysisTK.jar',
+		ref = main_dir + genome_dir + GENOME + ".fasta",
+		tumor = main_dir + output_dir + '{sample2}.T.sorted.nodups.realigned.recal.bam',#non_dinamic.bam #sample2
+		normal = main_dir + output_dir + '{sample2}.N.sorted.nodups.realigned.recal.bam',#non_dinamic.bam #sample2
+		dbSNP = main_dir + genome_dir + KS1
+		#recal = main_dir + output_dir + '{sample}.sorted.nodups.realigned.recal.bam',
+	output:
+		main_dir + output_dir + '{sample2}.Normal_VS_Tumor_output.vcf'#sample2
+	threads: 2
+	shell:
+		' java -jar {input.jar} \
+      	-T MuTect2 \
+      	-R {input.ref} \
+      	-I:tumor {input.tumor} \
+      	-I:normal {input.normal} \
+    	-nct {threads} \
+      	--dbsnp {input.dbSNP} ' + COSMIC + ' ' + L_TARGET + ' -o {output}'
