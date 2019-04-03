@@ -19,12 +19,14 @@ docker run -v </your_directory/>:/mnt/share jpmatos/vcall:0.1.1 snakemake --snak
 ```
 docker run -v </your_directory/docker_folder>:/mnt/share/ jpmatos/vcall:0.1.1
 ```
-  - Then type: 
+   - Then type: 
  ```
 snakemake --snakefile /mnt/share/vcall-pipe.snake -p /mnt/share/repo/example_dataset/output/<your_read>.Normal_VS_Tumor_output.vcf --cores <n_of_avaliable_cores>
 ```
 This time the container will not close after the pipeline run.
 
 
-still in development...
+
+
+- [ ] still in development...
 
