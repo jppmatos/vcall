@@ -1,6 +1,6 @@
 # Vcall
 A variantcalling pipeline.
-
+:warning: still in development :construction:
 ### How to run it
 1. Have [Docker](https://www.docker.com/get-started) installed
 2. Open Command Prompt
