@@ -28,5 +28,5 @@ snakemake --snakefile /mnt/share/vcall-pipe.snake -p /mnt/share/repo/example_dat
 
 
 
-- [ ] still in development...
+:warning: still in development :construction:
 
