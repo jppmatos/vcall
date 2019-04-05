@@ -1,9 +1,9 @@
 #----------------Settings:----------------------------------------------
-#print('Insert configfile directory:')
-#config_f = input()
-#print('Configfile: ',config_f)
-#configfile: config_f
-configfile: "/mnt/share/config_docker.yaml"
+print('Insert configfile directory:("/mnt/share/config_docker.yaml")')
+config_f = input()
+print('Configfile: ',config_f)
+configfile: config_f
+#configfile:"/mnt/share/config_real_docker.yaml"
 #|__________Dir_settings:____________|
 base_dir = config["base_dir"]
 main_dir = config["main_dir"] 
@@ -18,7 +18,8 @@ KS1 = config["KS1"]
 KS2 = config["KS2"]
 KS3 = config["KS3"]
 
-L_TARGET = config["TARGET"]
+L_TARGET = config["TARGET"] #
+C_TARGET = config["TARGET_C"] # improvised solution 
 COSMIC = config["COSMIC"]
 #|___________________________________|
 #------------------------------------------------------------------------
@@ -36,12 +37,12 @@ rule BWA_samblaster_sambamba:
 	input:
 	 	index = main_dir + genome_dir + GENOME + '.fasta.sa',# GENOME = b37_human_g1k_v37_decoy.chr20
 		ref = main_dir + genome_dir + GENOME + '.fasta',
-		r_fow = main_dir + sample_dir + '{sample}.R1.fastq.gz',
-		r_rev = main_dir + sample_dir + '{sample}.R2.fastq.gz'
+		r_fow = main_dir + sample_dir + '{sample}.read1.fastq.gz',#R1
+		r_rev = main_dir + sample_dir + '{sample}.read2.fastq.gz' #R2
 	output:
 		align = main_dir + output_dir + '{sample}.alignment.bam'
 		#log = 'mnt/share/repo/example_dataset/BSS.NA12878.20p12.1.30x.log'
-	#alterar "etiquetas" altearada -> NA12878
+	threads: 16
 	shell: 
 		'bwa mem -t {threads} -R "@RG\\tID:{wildcards.sample}\\tPL:ILLUMINA\\tSM:{wildcards.sample}" -M {input.ref} {input.r_fow} {input.r_rev} | '
 		'samblaster -M |'
@@ -194,12 +195,48 @@ rule Normal_VS_Tumor:
 		#recal = main_dir + output_dir + '{sample}.sorted.nodups.realigned.recal.bam',
 	output:
 		main_dir + output_dir + '{sample2}.Normal_VS_Tumor_output.vcf'#sample2
-	threads: 2
+	threads: 8
 	shell:
 		' java -jar {input.jar} \
-      	-T MuTect2 \
-      	-R {input.ref} \
-      	-I:tumor {input.tumor} \
-      	-I:normal {input.normal} \
-    	-nct {threads} \
-      	--dbsnp {input.dbSNP} ' + COSMIC + ' ' + L_TARGET + ' -o {output}'
+      		-T MuTect2 \
+      		-R {input.ref} \
+      		-I:tumor {input.tumor} \
+      		-I:normal {input.normal} \
+    		-nct {threads} \
+      		--dbsnp {input.dbSNP} ' + COSMIC + ' ' + L_TARGET + ' -o {output}'
+
+#|>CopyNumber_CNVkit:_(cnvkit.py , DNAcopy(an_R_package))_____________________________________________________________________________________________
+rule CopyNumber_CNVkit: #check sample3 wildcards!!!
+	input:
+		tumor = main_dir + output_dir + '{sample3}.T.sorted.nodups.realigned.recal.bam',#{Sample}_Tumor.bam
+		normal = main_dir + output_dir + '{sample3}.N.sorted.nodups.realigned.recal.bam',#{Sample}_Normal.bam
+		fa = main_dir + genome_dir + GENOME + ".fasta"
+	output:
+		referc = main_dir + output_dir + '{sample3}.my_reference.cnn'
+	shell:
+		'cnvkit.py batch {input.tumor} --normal {input.normal} ' + C_TARGET + ' \
+    	--fasta {input.fa} \
+    	--output-reference {output.referc} --output-dir example/'
+    	#--targets ' + C_TARGET + ' \
+
+#not ready 
+#|>Annotation:_(vt, snpEff/SnpSift, bcftools/htslib)_____________________________________________________________________________________________
+'''
+rule Annotation:
+	input:
+		fa = main_dir + genome_dir + GENOME + ".fasta",
+		''
+	output:
+		'',
+		main_dir + output_dir + 'exome_seq_20181113_final.vcf.gz'
+	shell:
+		'/usr/bin/time --verbose sed 's/ID=AD,Number=./ID=AD,Number=R/' {exome_seq_20181113_recalibrated_variants_postCGP_Gfiltered.vcf.gz} | \
+		vt decompose -s - | vt normalize -q -r {input.fa} - | \
+		java -Xmx16g -jar {~/snpEff/snpEff.jar} eff -noMotif -noNextProt -q -canon -hgvs -lof GRCh37.75 - | \
+		{~/snpEff/scripts/vcfEffOnePerLine.pl} | \
+		java -Xmx16g -jar{ ~/snpEff/SnpSift.jar} dbnsfp -f ESP6500_EA_AF,1000Gp1_AF,phastCons100way_vertebrate_rankscore,SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Polyphen2_HVAR_score,Polyphen2_HVAR_pred,LRT_score,LRT_pred,MutationTaster_score,MutationTaster_pred,MutationAssessor_score,MutationAssessor_pred,FATHMM_score,FATHMM_pred,MetaSVM_score,MetaSVM_pred,MetaLR_score,MetaLR_pred,CADD_phred,clinvar_clnsig,clinvar_trait -db {~/hg19/dbNSFP2.9_variants.txt.gz} - | \
+		bcftools annotate -a {~/hg19/genomicSuperDups.bed.gz} -h {~/hg19/genomicSuperDups_header.txt} -c CHROM,POS,END,genomicSuperDups | \
+		java -Xmx16g -jar {~/snpEff/SnpSift.jar} annotate {~/hg19/ExAC.r0.3.1.sites.vep.vcf.gz} -info ExAC_AF_v0.3.1 -noID | \
+		sed 's/ID=AD,Number=R/ID=AD,Number=./' | \
+		bgzip > {exome_seq_20181113_final.vcf.gz}'
+'''
