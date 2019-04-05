@@ -13,6 +13,11 @@ docker pull jpmatos/vcall:0.1.1 (or other tag)
 ```
 docker run -v </your_directory/>:/mnt/share jpmatos/vcall:0.1.1 snakemake --snakefile /mnt/share/vcall-pipe.snake -p /mnt/share/repo/example_dataset/output/<your_read>.Normal_VS_Tumor_output.vcf --cores <n_of_avaliable_cores>
 ```
+6. Then insert configfile directory(ex.):
+```
+Insert configfile directory: ("/mnt/share/config_docker.yaml")
+/mnt/share/config_docker.yaml
+```
 #### Some suggestions:
 * If your docker is slow, try this:
 > Open docker container: 
