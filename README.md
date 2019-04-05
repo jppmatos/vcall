@@ -6,7 +6,7 @@ A variantcalling pipeline.
 2. Open Command Prompt
 3. In Command Prompt type: 
 ```
-docker pull jpmatos/vcall:0.1.1 (or other tag)
+docker pull jpmatos/vcall:0.2 (or other tag)
 ```
 4. Config the config_docker.yaml by changing 'Dir_settings:' and 'Settings:'
 5. In Command Prompt type:
