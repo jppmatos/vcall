@@ -23,6 +23,16 @@ docker run -v </your_directory/docker_folder>:/mnt/share/ jpmatos/vcall:0.1.1
  ```
 snakemake --snakefile /mnt/share/vcall-pipe.snake -p /mnt/share/repo/example_dataset/output/<your_read>.Normal_VS_Tumor_output.vcf --cores <n_of_avaliable_cores>
 ```
+> It´ll ask where the config.yaml file is:
+```
+Insert configfile directory: ("/mnt/share/config_docker.yaml")
+```
+> Then type the config.yaml´s directory:
+ex:
+```
+/mnt/share/config_docker.yaml
+```
+
 > This time the container will not close after the pipeline run.
 
 
