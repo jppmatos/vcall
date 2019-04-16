@@ -29,7 +29,7 @@ For Annotation:
 ```
 6. Then collect your output-file:
 ```
-For dir example:
+Output dir example:
 /mnt/share/repo/example_dataset/output/T.vcf
 ```
 #### Some suggestions:
