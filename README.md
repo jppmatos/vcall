@@ -13,10 +13,11 @@ docker pull jpmatos/vcall:0.2.2 (or other tag)
 ```
 docker run -v </your_directory/>:/mnt/share jpmatos/vcall:0.2.2 snakemake --snakefile /mnt/share/vcall-pipe.snake -p /mnt/share/repo/example_dataset/output/<analisis_to_make> --cores <n_of_avaliable_cores>
 ```
-|Analisis_to_make:
+| Analisis_to_make:
+
 For comparation between Tumor and Normal reads:
 ```
-<your_read>.Normal_VS_Tumor_output.vcf 
+/{your_read}.Normal_VS_Tumor_output.vcf 
 ```
 For Analisis of Copy-number variantes:
 ```
