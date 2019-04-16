@@ -15,15 +15,15 @@ docker run -v </your_directory/>:/mnt/share jpmatos/vcall:0.2.2 snakemake --snak
 ```
 | Analisis_to_make:
 
-For comparation between Tumor and Normal reads:
+> For comparation between Tumor and Normal reads:
 ```
 /{your_read}.Normal_VS_Tumor_output.vcf 
 ```
-For Analisis of Copy-number variantes:
+> For Analisis of Copy-number variantes:
 ```
 /{your_read}.my_reference.cnn
 ```
-For Annotation:
+> For Annotation:
 ```
 /{your_read}.exome_seq_final.vcf.gz
 ```
