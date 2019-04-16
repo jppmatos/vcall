@@ -6,31 +6,40 @@ A variantcalling pipeline.
 2. Open Command Prompt
 3. In Command Prompt type: 
 ```
-docker pull jpmatos/vcall:0.2 (or other tag)
+docker pull jpmatos/vcall:0.2.2 (or other tag)
 ```
-4. Config the config_docker.yaml by changing 'Dir_settings:' and 'Settings:'
+4. Config the config_docker.yaml by changing 'Dir_settings:', 'Settings:' and 'Threads':
 5. In Command Prompt type:
 ```
-docker run -v </your_directory/>:/mnt/share jpmatos/vcall:0.1.1 snakemake --snakefile /mnt/share/vcall-pipe.snake -p /mnt/share/repo/example_dataset/output/<your_read>.Normal_VS_Tumor_output.vcf --cores <n_of_avaliable_cores>
+docker run -v </your_directory/>:/mnt/share jpmatos/vcall:0.2.2 snakemake --snakefile /mnt/share/vcall-pipe.snake -p /mnt/share/repo/example_dataset/output/<analisis_to_make> --cores <n_of_avaliable_cores>
 ```
-6. Then insert configfile directory(ex.):
+|Analisis_to_make:
+For comparation between Tumor and Normal reads:
 ```
-Insert configfile directory: ("/mnt/share/config_docker.yaml")
-/mnt/share/config_docker.yaml
+<your_read>.Normal_VS_Tumor_output.vcf 
+```
+For Analisis of Copy-number variantes:
+```
+/{your_read}.my_reference.cnn
+```
+For Annotation:
+```
+/{your_read}.exome_seq_final.vcf.gz
+```
+6. Then collect your output-file:
+```
+For dir example:
+/mnt/share/repo/example_dataset/output/T.vcf
 ```
 #### Some suggestions:
 * If your docker is slow, try this:
 > Open docker container: 
 ```
-docker run -v </your_directory/docker_folder>:/mnt/share/ jpmatos/vcall:0.1.1
+docker run -v </your_directory/docker_folder>:/mnt/share/ jpmatos/vcall:0.2.2
 ```
 > Then type: 
  ```
 snakemake --snakefile /mnt/share/vcall-pipe.snake -p /mnt/share/repo/example_dataset/output/<your_read>.Normal_VS_Tumor_output.vcf --cores <n_of_avaliable_cores>
-```
-> It´ll ask where the config.yaml file is:
-```
-Insert configfile directory: ("/mnt/share/config_docker.yaml")
 ```
 > Then type the config.yaml´s directory:
 ex:
