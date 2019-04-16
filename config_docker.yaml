@@ -6,6 +6,9 @@ sample_dir: sample_input/ #sample directory
 output_dir: output/ #output folder
 logs_dir: logs/ # for logs...
 jar_dir: /opt/conda/opt/ #needed for the gatk3_register
+#--For--Annotation--------------------------------------------------------------
+jar_snpEff: /opt/conda/pkgs/snpeff-4.3.1t-2/share/
+jar_SnpSift: /opt/conda/pkgs/snpsift-4.3.1t-1/share/
 #---------------Settings:----------------------------------------------
 GENOME: b37_human_g1k_v37_decoy.chr20
 KS1: b37_dbsnp_138.b37.chr_20p12.1.vcf.gz
@@ -18,3 +21,8 @@ TARGET_C: --targets /mnt/share/repo/example_dataset/sample_input/b37.vcrome2.1.a
 #TARGET: ""
 COSMIC: --cosmic /mnt/share/repo/example_dataset/genome_b37/CosmicCodingMuts_v87_12_03_2019.chr_20p12.1.vcf.gz
 #COSMIC: ""
+
+#___________________________Threading_______________________:
+BWA_samblaster_sambamba_threads: 1 #16
+Call_Variants_threads: 1 #2
+Normal_VS_Tumor_threads: 1 #8
